@@ -64,7 +64,7 @@ func (r *GameRenderer) renderADVMode(displayState *entity.DisplayState) string {
 func (r *GameRenderer) renderNVLMode(displayState *entity.DisplayState) string {
 	var content strings.Builder
 
-	textHeight := r.height - 3
+	textHeight := r.height - 4
 	textContent := r.createNVLContent(displayState, textHeight)
 	statusBar := r.createStatusBar(displayState)
 
@@ -78,7 +78,7 @@ func (r *GameRenderer) renderNVLMode(displayState *entity.DisplayState) string {
 func (r *GameRenderer) renderHybridMode(displayState *entity.DisplayState) string {
 	var content strings.Builder
 
-	backlogHeight := r.height - 10
+	backlogHeight := r.height - 14
 	currentTextHeight := 6
 
 	backlog := r.createBacklog(displayState, backlogHeight)
