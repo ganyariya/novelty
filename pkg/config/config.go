@@ -22,24 +22,24 @@ type GameConfig struct {
 }
 
 type DisplayConfig struct {
-	DefaultMode    string `json:"default_mode"`
-	TextSpeed      int    `json:"text_speed"`
-	AutoModeDelay  int    `json:"auto_mode_delay"`
-	WindowWidth    int    `json:"window_width"`
-	WindowHeight   int    `json:"window_height"`
-	ColorTheme     string `json:"color_theme"`
-	ShowLineNumbers bool  `json:"show_line_numbers"`
+	DefaultMode     string `json:"default_mode"`
+	TextSpeed       int    `json:"text_speed"`
+	AutoModeDelay   int    `json:"auto_mode_delay"`
+	WindowWidth     int    `json:"window_width"`
+	WindowHeight    int    `json:"window_height"`
+	ColorTheme      string `json:"color_theme"`
+	ShowLineNumbers bool   `json:"show_line_numbers"`
 }
 
 type AudioConfig struct {
-	Enabled          bool    `json:"enabled"`
-	MasterVolume     float64 `json:"master_volume"`
-	VoiceVolume      float64 `json:"voice_volume"`
-	BGMVolume        float64 `json:"bgm_volume"`
-	SFXVolume        float64 `json:"sfx_volume"`
-	VoiceDir         string  `json:"voice_dir"`
-	BGMDir           string  `json:"bgm_dir"`
-	SFXDir           string  `json:"sfx_dir"`
+	Enabled      bool    `json:"enabled"`
+	MasterVolume float64 `json:"master_volume"`
+	VoiceVolume  float64 `json:"voice_volume"`
+	BGMVolume    float64 `json:"bgm_volume"`
+	SFXVolume    float64 `json:"sfx_volume"`
+	VoiceDir     string  `json:"voice_dir"`
+	BGMDir       string  `json:"bgm_dir"`
+	SFXDir       string  `json:"sfx_dir"`
 }
 
 type DevelopmentConfig struct {
@@ -56,7 +56,7 @@ func DefaultConfig() *Config {
 			SaveDir:       "saves",
 			MaxSaveSlots:  9,
 			AutoSaveSlot:  0,
-			StartScene:    "test.lua",
+			StartScene:    "main.lua",
 			StartFunction: "start",
 		},
 		Display: DisplayConfig{
