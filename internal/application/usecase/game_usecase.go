@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	gameEntity "github.com/ganyariya/novelty/internal/domain/game/entity"
@@ -14,16 +13,17 @@ import (
 	scenarioVO "github.com/ganyariya/novelty/internal/domain/scenario/valueobject"
 	"github.com/ganyariya/novelty/internal/infrastructure/persistence"
 	"github.com/ganyariya/novelty/pkg/config"
+	"github.com/ganyariya/novelty/pkg/logger"
 )
 
 type GameUseCase struct {
-	scenarioRepo     repository.ScenarioRepository
-	scenarioService  *scenarioService.ScenarioService
-	jumpService      *scenarioService.JumpService
+	scenarioRepo       repository.ScenarioRepository
+	scenarioService    *scenarioService.ScenarioService
+	jumpService        *scenarioService.JumpService
 	textDisplayService *service.TextDisplayService
-	gameState        *gameEntity.GameState
-	displayState     *presentationEntity.DisplayState
-	config           *config.Config
+	gameState          *gameEntity.GameState
+	displayState       *presentationEntity.DisplayState
+	config             *config.Config
 }
 
 func NewGameUseCase(
@@ -34,16 +34,16 @@ func NewGameUseCase(
 	scenarioSvc := scenarioService.NewScenarioService(scenarioRepo, characterRepo)
 	jumpSvc := scenarioService.NewJumpService(scenarioSvc)
 	textDisplaySvc := service.NewTextDisplayService()
-	
+
 	startSceneID := scenarioVO.NewSceneIDFromPath(cfg.Game.StartScene)
 	gameState := gameEntity.NewGameState(startSceneID)
-	
+
 	displayState := presentationEntity.NewDisplayState(
 		cfg.GetDisplayMode(),
 		cfg.GetTextSpeed(),
 		cfg.GetColorTheme(),
 	)
-	
+
 	return &GameUseCase{
 		scenarioRepo:       scenarioRepo,
 		scenarioService:    scenarioSvc,
@@ -56,7 +56,7 @@ func NewGameUseCase(
 }
 
 func (u *GameUseCase) InitializeGame(ctx context.Context) error {
-	fmt.Printf("[DEBUG] Initializing game with scene: %s, function: %s\n", u.config.Game.StartScene, u.config.Game.StartFunction)
+	logger.Debug("Initializing game with scene: %s, function: %s", u.config.Game.StartScene, u.config.Game.StartFunction)
 	err := u.jumpService.JumpToScene(
 		ctx,
 		u.config.Game.StartScene,
@@ -64,9 +64,9 @@ func (u *GameUseCase) InitializeGame(ctx context.Context) error {
 		u.gameState,
 	)
 	if err != nil {
-		fmt.Printf("[DEBUG] Game initialization failed: %v\n", err)
+		logger.Error("Game initialization failed: %v", err)
 	} else {
-		fmt.Printf("[DEBUG] Game initialized successfully. Messages in history: %d\n", len(u.gameState.History()))
+		logger.Debug("Game initialized successfully. Messages in history: %d", len(u.gameState.History()))
 	}
 	return err
 }
@@ -92,17 +92,17 @@ func (u *GameUseCase) AdvanceText() {
 		if scenarioRepo, ok := u.scenarioRepo.(*persistence.FileScenarioRepository); ok {
 			engine := scenarioRepo.GetEngine()
 			executionState := engine.GetExecutionState()
-			
+
 			if nextMessage := executionState.GetNextMessage(); nextMessage != nil {
-				fmt.Printf("[DEBUG] AdvanceText: Showing next message from queue: %s\n", nextMessage.Content())
-				
+				logger.Debug("AdvanceText: Showing next message from queue: %s", nextMessage.Content())
+
 				// メッセージを履歴に追加
 				u.gameState.AddToHistory(nextMessage)
-				
+
 				// メッセージを表示
 				u.textDisplayService.ShowMessage(u.displayState, nextMessage)
 			} else {
-				fmt.Printf("[DEBUG] No more messages in queue\n")
+				logger.Debug("No more messages in queue")
 			}
 		}
 	}
@@ -141,30 +141,29 @@ func (u *GameUseCase) ProcessNewMessage() {
 	if scenarioRepo, ok := u.scenarioRepo.(*persistence.FileScenarioRepository); ok {
 		engine := scenarioRepo.GetEngine()
 		executionState := engine.GetExecutionState()
-		
+
 		// 現在表示中のメッセージがない場合、キューから次のメッセージを取得
 		if u.displayState.CurrentMessage() == nil && executionState.HasPendingMessages() {
 			if nextMessage := executionState.GetNextMessage(); nextMessage != nil {
-				fmt.Printf("[DEBUG] ProcessNewMessage: Showing message from queue: %s\n", nextMessage.Content())
-				
+				logger.Debug("ProcessNewMessage: Showing message from queue: %s", nextMessage.Content())
+
 				// メッセージを履歴に追加
 				u.gameState.AddToHistory(nextMessage)
-				
+
 				// メッセージを表示
 				u.textDisplayService.ShowMessage(u.displayState, nextMessage)
 				return
 			}
 		}
 	}
-	
+
 	// 従来の履歴ベースの処理をフォールバックとして保持
 	history := u.gameState.History()
 	if len(history) > 0 {
 		lastMessage := history[len(history)-1]
-		if u.displayState.CurrentMessage() == nil || 
-		   u.displayState.CurrentMessage().ID().String() != lastMessage.ID().String() {
+		if u.displayState.CurrentMessage() == nil ||
+			u.displayState.CurrentMessage().ID().String() != lastMessage.ID().String() {
 			u.textDisplayService.ShowMessage(u.displayState, lastMessage)
 		}
 	}
 }
-
