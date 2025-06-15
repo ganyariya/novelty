@@ -86,3 +86,7 @@ func (r *FileScenarioRepository) ReloadScene(ctx context.Context, sceneID valueo
 	
 	return scene, nil
 }
+
+func (r *FileScenarioRepository) GetEngine() *lua.ScenarioEngine {
+	return r.engine
+}

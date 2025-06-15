@@ -103,5 +103,5 @@ end
 
 function loop_end()
     text("システム", "デモループです。Enterで繰り返し、Qで終了してください。")
-    jump_to_label("loop_end")
+    -- 無限ループを避けるために、ここでは何もしない
 end

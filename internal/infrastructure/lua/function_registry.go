@@ -1,7 +1,8 @@
 package lua
 
 import (
-	"strconv"
+	"fmt"
+	"time"
 
 	"github.com/ganyariya/novelty/internal/domain/scenario/entity"
 	"github.com/ganyariya/novelty/internal/domain/scenario/valueobject"
@@ -45,15 +46,19 @@ func (r *FunctionRegistry) text(L *lua.LState) int {
 	characterID := L.CheckString(1)
 	content := L.CheckString(2)
 	
+	// デバッグ情報
+	fmt.Printf("[DEBUG] text called: %s: %s\n", characterID, content)
+	
 	gameState := r.engine.GetGameState()
 	if gameState == nil {
+		fmt.Printf("[DEBUG] game state is nil\n")
 		L.Push(lua.LBool(false))
 		L.Push(lua.LString("game state not set"))
 		return 2
 	}
 	
 	message := entity.NewMessage(
-		entity.NewMessageID(strconv.FormatInt(int64(L.GetTop()), 10)),
+		entity.NewMessageID(fmt.Sprintf("msg_%d", time.Now().UnixNano())),
 		valueobject.NewCharacterID(characterID),
 		content,
 		valueobject.DisplayModeADV,
@@ -61,6 +66,10 @@ func (r *FunctionRegistry) text(L *lua.LState) int {
 	)
 	
 	gameState.AddToHistory(message)
+	fmt.Printf("[DEBUG] message added to history. Total messages: %d\n", len(gameState.History()))
+	
+	// メッセージキューシステムを使用
+	r.engine.GetExecutionState().AddMessage(message)
 	
 	L.Push(lua.LBool(true))
 	return 1
@@ -69,20 +78,27 @@ func (r *FunctionRegistry) text(L *lua.LState) int {
 func (r *FunctionRegistry) narration(L *lua.LState) int {
 	content := L.CheckString(1)
 	
+	fmt.Printf("[DEBUG] narration called: %s\n", content)
+	
 	gameState := r.engine.GetGameState()
 	if gameState == nil {
+		fmt.Printf("[DEBUG] game state is nil\n")
 		L.Push(lua.LBool(false))
 		L.Push(lua.LString("game state not set"))
 		return 2
 	}
 	
 	message := entity.NewNarrationMessage(
-		entity.NewMessageID(strconv.FormatInt(int64(L.GetTop()), 10)),
+		entity.NewMessageID(fmt.Sprintf("msg_%d", time.Now().UnixNano())),
 		content,
 		valueobject.DisplayModeADV,
 	)
 	
 	gameState.AddToHistory(message)
+	fmt.Printf("[DEBUG] narration message added to history. Total messages: %d\n", len(gameState.History()))
+	
+	// メッセージキューシステムを使用
+	r.engine.GetExecutionState().AddMessage(message)
 	
 	L.Push(lua.LBool(true))
 	return 1
@@ -99,7 +115,7 @@ func (r *FunctionRegistry) nvlText(L *lua.LState) int {
 	}
 	
 	message := entity.NewNarrationMessage(
-		entity.NewMessageID(strconv.FormatInt(int64(L.GetTop()), 10)),
+		entity.NewMessageID(fmt.Sprintf("msg_%d", time.Now().UnixNano())),
 		content,
 		valueobject.DisplayModeNVL,
 	)
@@ -130,7 +146,18 @@ func (r *FunctionRegistry) jumpToScene(L *lua.LState) int {
 	sceneID := valueobject.NewSceneIDFromPath(scenePath)
 	gameState.SetCurrentScene(sceneID, functionName)
 	
-	// TODO: Actually load and execute the new scene
+	// Load and execute the new scene
+	if err := r.engine.LoadScript(scenePath); err != nil {
+		L.Push(lua.LBool(false))
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
+	
+	if err := r.engine.ExecuteFunction(functionName); err != nil {
+		L.Push(lua.LBool(false))
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
 	
 	L.Push(lua.LBool(true))
 	return 1
@@ -148,7 +175,12 @@ func (r *FunctionRegistry) jumpToLabel(L *lua.LState) int {
 	
 	gameState.SetCurrentScene(gameState.CurrentScene(), functionName)
 	
-	// TODO: Execute the function in current scene
+	// Execute the function in current scene
+	if err := r.engine.ExecuteFunction(functionName); err != nil {
+		L.Push(lua.LBool(false))
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
 	
 	L.Push(lua.LBool(true))
 	return 1
@@ -265,7 +297,7 @@ func (r *FunctionRegistry) voiceText(L *lua.LState) int {
 	}
 	
 	message := entity.NewMessage(
-		entity.NewMessageID(strconv.FormatInt(int64(L.GetTop()), 10)),
+		entity.NewMessageID(fmt.Sprintf("msg_%d", time.Now().UnixNano())),
 		valueobject.NewCharacterID(characterID),
 		content,
 		valueobject.DisplayModeADV,

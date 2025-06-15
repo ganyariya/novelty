@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	gameEntity "github.com/ganyariya/novelty/internal/domain/game/entity"
@@ -11,6 +12,7 @@ import (
 	"github.com/ganyariya/novelty/internal/domain/scenario/repository"
 	scenarioService "github.com/ganyariya/novelty/internal/domain/scenario/service"
 	scenarioVO "github.com/ganyariya/novelty/internal/domain/scenario/valueobject"
+	"github.com/ganyariya/novelty/internal/infrastructure/persistence"
 	"github.com/ganyariya/novelty/pkg/config"
 )
 
@@ -54,12 +56,19 @@ func NewGameUseCase(
 }
 
 func (u *GameUseCase) InitializeGame(ctx context.Context) error {
-	return u.jumpService.JumpToScene(
+	fmt.Printf("[DEBUG] Initializing game with scene: %s, function: %s\n", u.config.Game.StartScene, u.config.Game.StartFunction)
+	err := u.jumpService.JumpToScene(
 		ctx,
 		u.config.Game.StartScene,
 		u.config.Game.StartFunction,
 		u.gameState,
 	)
+	if err != nil {
+		fmt.Printf("[DEBUG] Game initialization failed: %v\n", err)
+	} else {
+		fmt.Printf("[DEBUG] Game initialized successfully. Messages in history: %d\n", len(u.gameState.History()))
+	}
+	return err
 }
 
 func (u *GameUseCase) UpdateTyping() bool {
@@ -75,7 +84,23 @@ func (u *GameUseCase) ShouldAutoAdvance(elapsed time.Duration) bool {
 }
 
 func (u *GameUseCase) AdvanceText() {
-	u.textDisplayService.AdvanceToNextMessage(u.displayState)
+	if u.displayState.IsTyping() {
+		// タイピング中の場合はタイピングを完了
+		u.textDisplayService.AdvanceToNextMessage(u.displayState)
+	} else {
+		// タイピング完了後の場合は次のメッセージを表示
+		if scenarioRepo, ok := u.scenarioRepo.(*persistence.FileScenarioRepository); ok {
+			engine := scenarioRepo.GetEngine()
+			executionState := engine.GetExecutionState()
+			
+			if nextMessage := executionState.GetNextMessage(); nextMessage != nil {
+				fmt.Printf("[DEBUG] Showing next message from queue: %s\n", nextMessage.Content())
+				u.textDisplayService.ShowMessage(u.displayState, nextMessage)
+			} else {
+				fmt.Printf("[DEBUG] No more messages in queue\n")
+			}
+		}
+	}
 }
 
 func (u *GameUseCase) ToggleAutoMode() {
@@ -116,3 +141,4 @@ func (u *GameUseCase) ProcessNewMessage() {
 		}
 	}
 }
+

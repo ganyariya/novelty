@@ -56,7 +56,7 @@ func DefaultConfig() *Config {
 			SaveDir:       "saves",
 			MaxSaveSlots:  9,
 			AutoSaveSlot:  0,
-			StartScene:    "main.lua",
+			StartScene:    "test.lua",
 			StartFunction: "start",
 		},
 		Display: DisplayConfig{
