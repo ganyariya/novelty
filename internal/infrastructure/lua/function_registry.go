@@ -65,11 +65,9 @@ func (r *FunctionRegistry) text(L *lua.LState) int {
 		"",
 	)
 	
-	gameState.AddToHistory(message)
-	fmt.Printf("[DEBUG] message added to history. Total messages: %d\n", len(gameState.History()))
-	
-	// メッセージキューシステムを使用
+	// キューシステムのみを使用（履歴は後で追加）
 	r.engine.GetExecutionState().AddMessage(message)
+	fmt.Printf("[DEBUG] message added to queue. Queue size: %d\n", len(r.engine.GetExecutionState().MessageQueue))
 	
 	L.Push(lua.LBool(true))
 	return 1

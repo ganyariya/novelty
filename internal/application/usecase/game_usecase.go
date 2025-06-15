@@ -94,7 +94,12 @@ func (u *GameUseCase) AdvanceText() {
 			executionState := engine.GetExecutionState()
 			
 			if nextMessage := executionState.GetNextMessage(); nextMessage != nil {
-				fmt.Printf("[DEBUG] Showing next message from queue: %s\n", nextMessage.Content())
+				fmt.Printf("[DEBUG] AdvanceText: Showing next message from queue: %s\n", nextMessage.Content())
+				
+				// メッセージを履歴に追加
+				u.gameState.AddToHistory(nextMessage)
+				
+				// メッセージを表示
 				u.textDisplayService.ShowMessage(u.displayState, nextMessage)
 			} else {
 				fmt.Printf("[DEBUG] No more messages in queue\n")
@@ -132,6 +137,27 @@ func (u *GameUseCase) GetDisplayState() *presentationEntity.DisplayState {
 }
 
 func (u *GameUseCase) ProcessNewMessage() {
+	// メッセージキューから新しいメッセージがあるかチェック
+	if scenarioRepo, ok := u.scenarioRepo.(*persistence.FileScenarioRepository); ok {
+		engine := scenarioRepo.GetEngine()
+		executionState := engine.GetExecutionState()
+		
+		// 現在表示中のメッセージがない場合、キューから次のメッセージを取得
+		if u.displayState.CurrentMessage() == nil && executionState.HasPendingMessages() {
+			if nextMessage := executionState.GetNextMessage(); nextMessage != nil {
+				fmt.Printf("[DEBUG] ProcessNewMessage: Showing message from queue: %s\n", nextMessage.Content())
+				
+				// メッセージを履歴に追加
+				u.gameState.AddToHistory(nextMessage)
+				
+				// メッセージを表示
+				u.textDisplayService.ShowMessage(u.displayState, nextMessage)
+				return
+			}
+		}
+	}
+	
+	// 従来の履歴ベースの処理をフォールバックとして保持
 	history := u.gameState.History()
 	if len(history) > 0 {
 		lastMessage := history[len(history)-1]

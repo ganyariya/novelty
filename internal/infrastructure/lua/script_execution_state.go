@@ -11,30 +11,30 @@ type ScriptExecutionState struct {
 	currentScene    valueobject.SceneID
 	currentFunction string
 	isWaitingInput  bool
-	messageQueue    []*entity.Message
+	MessageQueue    []*entity.Message // 公開フィールドに変更
 	nextAction      func() error
 }
 
 func NewScriptExecutionState() *ScriptExecutionState {
 	return &ScriptExecutionState{
-		messageQueue:   make([]*entity.Message, 0),
+		MessageQueue:   make([]*entity.Message, 0),
 		isWaitingInput: false,
 	}
 }
 
 func (s *ScriptExecutionState) AddMessage(message *entity.Message) {
-	s.messageQueue = append(s.messageQueue, message)
+	s.MessageQueue = append(s.MessageQueue, message)
 	s.isWaitingInput = true
 	fmt.Printf("[DEBUG] Message queued: %s, waiting for input\n", message.Content())
 }
 
 func (s *ScriptExecutionState) GetNextMessage() *entity.Message {
-	if len(s.messageQueue) > 0 {
-		message := s.messageQueue[0]
-		s.messageQueue = s.messageQueue[1:]
-		fmt.Printf("[DEBUG] Dequeued message: %s, remaining: %d\n", message.Content(), len(s.messageQueue))
+	if len(s.MessageQueue) > 0 {
+		message := s.MessageQueue[0]
+		s.MessageQueue = s.MessageQueue[1:]
+		fmt.Printf("[DEBUG] Dequeued message: %s, remaining: %d\n", message.Content(), len(s.MessageQueue))
 		
-		if len(s.messageQueue) == 0 {
+		if len(s.MessageQueue) == 0 {
 			s.isWaitingInput = false
 		}
 		
@@ -48,7 +48,7 @@ func (s *ScriptExecutionState) IsWaitingInput() bool {
 }
 
 func (s *ScriptExecutionState) HasPendingMessages() bool {
-	return len(s.messageQueue) > 0
+	return len(s.MessageQueue) > 0
 }
 
 func (s *ScriptExecutionState) ContinueExecution() error {
